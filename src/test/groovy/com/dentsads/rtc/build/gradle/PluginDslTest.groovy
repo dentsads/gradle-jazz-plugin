@@ -32,7 +32,6 @@ class PluginDslTest extends BaseTest {
                     activeFeatureIds = ['com.ibm.foo.feature',
                                         'com.bosch.foo.feature']
 
-
                 }
             }
         }

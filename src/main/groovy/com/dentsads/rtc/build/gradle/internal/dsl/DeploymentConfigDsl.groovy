@@ -21,6 +21,7 @@ import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.internal.reflect.Instantiator
+import org.gradle.util.ConfigureUtil
 
 class DeploymentConfigDsl extends DeploymentConfig implements Serializable  {
     private static final long serialVersionUID = 1L
@@ -31,11 +32,13 @@ class DeploymentConfigDsl extends DeploymentConfig implements Serializable  {
         this.project = project
     }
 
-    //void repository(Action<? super RepositoryAuthentication> action) {
-    //    println "ding ding"
-    //    this.setRepository(project.extensions.create("repository", RepositoryAuthentication));
-    //    action.execute(this.getRepository())
-    //}
+    /*void repository(Closure closure) {
+        //closure.resolveStrategy = Closure.DELEGATE_FIRST
+        this.repository = new RepositoryAuthentication()
+        ConfigureUtil.configure(closure, this.repository)
+        println this.repository.getUsername()
+    }
+    */
 
     @Override
     public boolean equals(Object o) {
