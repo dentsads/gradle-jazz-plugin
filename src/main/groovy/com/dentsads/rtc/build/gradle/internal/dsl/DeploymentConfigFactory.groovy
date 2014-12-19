@@ -16,6 +16,7 @@
 package com.dentsads.rtc.build.gradle.internal.dsl
 
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
+import com.dentsads.rtc.build.gradle.internal.model.RepositoryAuthentication
 import org.gradle.api.NamedDomainObjectFactory
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.internal.reflect.Instantiator
@@ -32,6 +33,9 @@ class DeploymentConfigFactory implements NamedDomainObjectFactory<DeploymentConf
 
     @Override
     DeploymentConfig create(String name) {
-        return instantiator.newInstance(DeploymentConfigDsl.class, name, project)
+        DeploymentConfig depl = instantiator.newInstance(DeploymentConfigDsl.class, name, project)
+        depl.repository = instantiator.newInstance(RepositoryAuthentication.class)
+        
+        return depl
     }
 }

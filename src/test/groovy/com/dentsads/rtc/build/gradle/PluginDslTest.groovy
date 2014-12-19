@@ -21,9 +21,11 @@ import org.gradle.testfixtures.ProjectBuilder
 
 class PluginDslTest extends BaseTest {
     public void testDeploymentConfigs() {
-        Project project = ProjectBuilder.builder().withProjectDir(
-                new File(testDir, "deploymentConfigs")).build()
+        //Project project = ProjectBuilder.builder().withProjectDir(
+        //        new File(testDir, "deploymentConfigs")).build()
 
+        Project project = ProjectBuilder.builder().build()
+        
         project.apply plugin: 'jazz'
 
         project.jazz {
@@ -31,16 +33,32 @@ class PluginDslTest extends BaseTest {
                 config_localhost{
                     activeFeatureIds = ['com.ibm.foo.feature',
                                         'com.bosch.foo.feature']
-
+                    repository {
+                        username "foo"
+                        
+                    }
                 }
             }
         }
 
-        project.afterEvaluate {
-            assertTrue(true)
-        }
+        assertEquals("foo", project.jazz.deploymentConfigs.config_localhost.repository.username)
     }
 
+    public void testBuildTypes() {
+        Project project = ProjectBuilder.builder().build()
+        
+        project.apply plugin: 'jazz'
+
+        project.jazz {
+            buildTypes {
+                test{
+                    templateName "foo"
+                }
+            }
+        }
+        
+        assertEquals("foo", project.jazz.buildTypes.test.templateName)
+    }
     public void testDynamicTaskCreation() {
 
     }

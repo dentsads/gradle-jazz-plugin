@@ -32,14 +32,6 @@ class DeploymentConfigDsl extends DeploymentConfig implements Serializable  {
         this.project = project
     }
 
-    /*void repository(Closure closure) {
-        //closure.resolveStrategy = Closure.DELEGATE_FIRST
-        this.repository = new RepositoryAuthentication()
-        ConfigureUtil.configure(closure, this.repository)
-        println this.repository.getUsername()
-    }
-    */
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
