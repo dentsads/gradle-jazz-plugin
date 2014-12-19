@@ -32,12 +32,11 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.internal.reflect.Instantiator
-import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
 
 import javax.inject.Inject
 
 class JazzPlugin implements Plugin<Project> {
-    final Map<String, BuildTypeData> buildTypes = [:]
+    final Map<String, BuildType> buildTypes = [:]
     final Map<String, DeploymentConfig> deploymentConfigs = [:]
 
     Logger logger = Logging.getLogger(JazzPlugin.class);
@@ -49,12 +48,10 @@ class JazzPlugin implements Plugin<Project> {
     private boolean hasCreatedTasks = false
 
     protected Instantiator instantiator
-    private ToolingModelBuilderRegistry registry
 
     @Inject
-    public JazzPlugin(Instantiator instantiator, ToolingModelBuilderRegistry registry) {
+    public JazzPlugin(Instantiator instantiator) {
         this.instantiator = instantiator
-        this.registry = registry
     }
 
     @Override
@@ -91,7 +88,7 @@ class JazzPlugin implements Plugin<Project> {
         String name = buildType.name
         BuildTypeData buildTypeData = new BuildTypeData(buildType, project)
         project.tasks.assemble.dependsOn buildTypeData.assembleTask
-        buildTypes[name] = buildTypeData
+        buildTypes[name] = buildType
 
        project.afterEvaluate{
            buildType.properties.each {property ->
@@ -122,12 +119,12 @@ class JazzPlugin implements Plugin<Project> {
         hasCreatedTasks = true
 
         logger.quiet("Creating Tasks for Build Type declarations!")
-        for (BuildTypeData buildTypeData : buildTypes.values()) {
+        for (BuildType buildType : buildTypes.values()) {
             Task testTask
-            testTask = project.tasks.create("testingAssemble${buildTypeData.buildType.name.capitalize()}", BuildTask)
-            testTask.description = "Assembles all ${buildTypeData.buildType.name.capitalize()} builds"
+            testTask = project.tasks.create("testingAssemble${buildType.name.capitalize()}", BuildTask)
+            testTask.description = "Assembles all ${buildType.name.capitalize()} builds"
             testTask.group = "JazzTesting"
-            testTask.getOut = buildTypeData.buildType.name
+            testTask.getOut = buildType.name
         }
     }
 }
