@@ -37,12 +37,12 @@ class JazzExtension {
     }
 
     void deploymentConfigs(Action<? super NamedDomainObjectContainer<DeploymentConfig>> action) {
-        plugin.checkTasksAlreadyCreated();
+        //plugin.checkTasksAlreadyCreated();
         action.execute(deploymentConfigs)
     }
 
     void buildTypes(Action<? super NamedDomainObjectContainer<BuildType>> action) {
-        plugin.checkTasksAlreadyCreated();
+        //plugin.checkTasksAlreadyCreated();
         action.execute(buildTypes)
     }
 

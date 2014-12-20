@@ -41,4 +41,33 @@ public abstract class BaseTest extends TestCase{
         File rootDir = getRootDir()
         return new File(rootDir, "tests")
     }
+
+    /**
+     * Returns the name item from the collection of items. The items *must* have a "name" property.
+     * @param items the item collection to search for a match
+     * @param name the name of the item to return
+     * @return the found item or null
+     */
+    protected static <T> T findNamedItemMaybe(Collection<T> items,
+                                              String name) {
+        for (T item : items) {
+            if (name.equals(item.name)) {
+                return item
+            }
+        }
+        return null
+    }
+    /**
+     * Returns the name item from the collection of items. The items *must* have a "name" property.
+     * @param items the item collection to search for a match
+     * @param name the name of the item to return
+     * @return the found item or null
+     */
+    protected static <T> T findNamedItem(Collection<T> items,
+                                         String name,
+                                         String typeName) {
+        T foundItem = findNamedItemMaybe(items, name);
+        assertNotNull("$name $typeName null-check", foundItem)
+        return foundItem
+    }
 }

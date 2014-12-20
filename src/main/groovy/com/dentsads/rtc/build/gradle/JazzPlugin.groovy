@@ -19,7 +19,6 @@ import com.dentsads.rtc.build.gradle.internal.dsl.BuildTypeFactory
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigDsl
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigFactory
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
-import com.dentsads.rtc.build.gradle.internal.model.RepositoryAuthentication
 import com.dentsads.rtc.build.gradle.tasks.BuildTask
 import com.dentsads.rtc.build.gradle.internal.BuildTypeData
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
@@ -75,10 +74,10 @@ class JazzPlugin implements Plugin<Project> {
 
         deploymentConfigContainer.whenObjectAdded { DeploymentConfig deploymentConfig ->
             DeploymentConfigDsl deploymentConfigDsl = (DeploymentConfigDsl) deploymentConfig
-            deploymentConfig.repository = project.extensions.create("repository", RepositoryAuthentication)
             deploymentConfigs[deploymentConfigDsl.name] = deploymentConfig
         }
 
+        //createTasks()
         project.afterEvaluate{
             createTasks()
         }
@@ -111,7 +110,7 @@ class JazzPlugin implements Plugin<Project> {
         }
     }
 
-    private createTasks() {
+    public createTasks() {
         if (hasCreatedTasks) {
             logger.quiet("Tasks have already been created, aborting task creation!")
             return

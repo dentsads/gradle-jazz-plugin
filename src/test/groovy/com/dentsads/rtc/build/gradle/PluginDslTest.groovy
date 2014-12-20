@@ -16,6 +16,7 @@
 package com.dentsads.rtc.build.gradle
 
 import com.dentsads.rtc.build.gradle.internal.BaseTest
+import com.dentsads.rtc.build.gradle.internal.model.BuildType
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 
@@ -54,12 +55,34 @@ class PluginDslTest extends BaseTest {
                 test{
                     templateName "foo"
                 }
+                test2 {}
+                test3 {}
             }
         }
+
+        JazzPlugin plugin = project.jazz.plugin
+        plugin.createTasks()
         
-        assertEquals("foo", project.jazz.buildTypes.test.templateName)
         assertNull(project.jazz.buildTypes.test.templateId)
+        
+        String[] buildTypeNames = ["test",
+                                   "test2",
+                                   "test3"];
+
+        for (String buildTypeName : buildTypeNames) {
+            findNamedItem(project.jazz.plugin.buildTypes.values(), buildTypeName, "buildType Names");
+        }
+
+        String[] buildTypeTaskNames = ["testingAssembleTest",
+                                       "testingAssembleTest2",
+                                       "testingAssembleTest3"];
+
+        for (String buildTypeTaskName : buildTypeTaskNames) {
+            findNamedItem(project.tasks.asMap.values(), buildTypeTaskName, "buildType Task Names");
+        }
+
     }
+    
     public void testDynamicTaskCreation() {
 
     }
