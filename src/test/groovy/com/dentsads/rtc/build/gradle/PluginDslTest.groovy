@@ -58,6 +58,7 @@ class PluginDslTest extends BaseTest {
         }
         
         assertEquals("foo", project.jazz.buildTypes.test.templateName)
+        assertNull(project.jazz.buildTypes.test.templateId)
     }
     public void testDynamicTaskCreation() {
 
