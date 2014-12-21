@@ -77,7 +77,6 @@ class JazzPlugin implements Plugin<Project> {
             deploymentConfigs[deploymentConfigDsl.name] = deploymentConfig
         }
 
-        //createTasks()
         project.afterEvaluate{
             createTasks()
         }
@@ -88,26 +87,6 @@ class JazzPlugin implements Plugin<Project> {
         BuildTypeData buildTypeData = new BuildTypeData(buildType, project)
         project.tasks.assemble.dependsOn buildTypeData.assembleTask
         buildTypes[name] = buildType
-
-       project.afterEvaluate{
-           buildType.properties.each {property ->
-               //println property.toString()
-               //assert property.value != null, "Property $property.key must not be null!"
-
-               if (property.value == null) {
-                   throw new IllegalArgumentException(
-                           "Property $property.key must not be null!")
-               }
-           }
-           //assert buildType.templateId != null , "Null not allowed"
-       }
-    }
-
-    public void checkTasksAlreadyCreated() {
-        if (hasCreatedTasks) {
-            throw new GradleException(
-                    "Jazz Gradle tasks have already been created.")
-        }
     }
 
     public createTasks() {
