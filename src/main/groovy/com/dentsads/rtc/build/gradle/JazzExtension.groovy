@@ -17,14 +17,18 @@ package com.dentsads.rtc.build.gradle
 
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
+import com.dentsads.rtc.build.gradle.internal.model.ExtractionConfig
+import com.dentsads.rtc.build.gradle.internal.model.RepositoryAuthentication
 import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.internal.reflect.Instantiator
+import org.gradle.util.ConfigureUtil
 
 class JazzExtension {
     final NamedDomainObjectContainer<BuildType> buildTypes
     final NamedDomainObjectContainer<DeploymentConfig> deploymentConfigs
+    final ExtractionConfig extractionConfig
 
     protected final JazzPlugin plugin
 
@@ -34,6 +38,8 @@ class JazzExtension {
         this.plugin = plugin
         this.buildTypes = buildTypes
         this.deploymentConfigs = deploymentConfigs
+        this.extractionConfig = instantiator.newInstance(ExtractionConfig.class)
+        this.extractionConfig.repository = instantiator.newInstance(RepositoryAuthentication.class)
     }
 
     void deploymentConfigs(Action<? super NamedDomainObjectContainer<DeploymentConfig>> action) {
@@ -44,6 +50,10 @@ class JazzExtension {
     void buildTypes(Action<? super NamedDomainObjectContainer<BuildType>> action) {
         //plugin.checkTasksAlreadyCreated();
         action.execute(buildTypes)
+    }
+    
+    void extractionConfig(Closure closure) {
+        ConfigureUtil.configure(closure, extractionConfig)
     }
 
 }

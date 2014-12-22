@@ -83,7 +83,28 @@ class PluginDslTest extends BaseTest {
 
     }
     
-    public void testDynamicTaskCreation() {
+    public void testProjectAreaExtraction() {
+        Project project = ProjectBuilder.builder().build()
 
+        project.apply plugin: 'jazz'
+
+        project.jazz {
+            extractionConfig {
+                projectAreaName "TestArea1"
+                templateId "TestArea1"
+                //zipPath "Path1"
+
+                repository {
+                    username "TestJazzAdmin1"
+                    password "TestJazzAdmin1"
+                    repositoryUrl "https://localhost:9443/ccm"
+                }
+            }
+        }
+
+        JazzPlugin plugin = project.jazz.plugin
+        plugin.createExportTask()
+        project.tasks.exportProcessTemplate.execute()
+        assertTrue(true)
     }
 }

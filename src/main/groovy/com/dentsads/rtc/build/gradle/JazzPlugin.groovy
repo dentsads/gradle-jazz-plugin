@@ -22,6 +22,7 @@ import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
 import com.dentsads.rtc.build.gradle.tasks.BuildTask
 import com.dentsads.rtc.build.gradle.internal.BuildTypeData
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
+import com.dentsads.rtc.build.gradle.tasks.ExportProcessTemplate
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -35,6 +36,9 @@ import org.gradle.internal.reflect.Instantiator
 import javax.inject.Inject
 
 class JazzPlugin implements Plugin<Project> {
+    static final String EXPORT_PROCESS_TEMPLATE_TASK_NAME = 'exportProcessTemplate'
+    static final String JAZZ_GROUP_NAME = 'Jazz'
+    
     final Map<String, BuildType> buildTypes = [:]
     final Map<String, DeploymentConfig> deploymentConfigs = [:]
 
@@ -42,7 +46,7 @@ class JazzPlugin implements Plugin<Project> {
 
     protected Project project
 
-    JazzExtension extension
+    JazzExtension jazzExtension
 
     private boolean hasCreatedTasks = false
 
@@ -65,7 +69,7 @@ class JazzPlugin implements Plugin<Project> {
         def deploymentConfigContainer = project.container(DeploymentConfig,
                 new DeploymentConfigFactory(instantiator, (ProjectInternal)project))
 
-        extension = project.extensions.create('jazz', JazzExtension, this, (ProjectInternal)project, instantiator,
+        jazzExtension = project.extensions.create('jazz', JazzExtension, this, (ProjectInternal)project, instantiator,
         buildTypeContainer, deploymentConfigContainer)
 
         buildTypeContainer.whenObjectAdded { BuildType buildType ->
@@ -79,6 +83,7 @@ class JazzPlugin implements Plugin<Project> {
 
         project.afterEvaluate{
             createTasks()
+            createExportTask()
         }
     }
 
@@ -88,8 +93,8 @@ class JazzPlugin implements Plugin<Project> {
         project.tasks.assemble.dependsOn buildTypeData.assembleTask
         buildTypes[name] = buildType
     }
-
-    public createTasks() {
+    
+    public void createTasks() {
         if (hasCreatedTasks) {
             logger.quiet("Tasks have already been created, aborting task creation!")
             return
@@ -98,11 +103,24 @@ class JazzPlugin implements Plugin<Project> {
 
         logger.quiet("Creating Tasks for Build Type declarations!")
         for (BuildType buildType : buildTypes.values()) {
-            Task testTask
-            testTask = project.tasks.create("testingAssemble${buildType.name.capitalize()}", BuildTask)
+            Task testTask = project.tasks.create("testingAssemble${buildType.name.capitalize()}", BuildTask)
             testTask.description = "Assembles all ${buildType.name.capitalize()} builds"
             testTask.group = "JazzTesting"
+            
             testTask.getOut = buildType.name
         }
     }
+    
+    public void createExportTask() {
+        Task extractionTask = project.tasks.create(EXPORT_PROCESS_TEMPLATE_TASK_NAME, ExportProcessTemplate)
+        extractionTask.description = 'Extracts and exports a Process Template .zip file for a given Project Area.'
+        extractionTask.group = JAZZ_GROUP_NAME
+        
+        extractionTask.projectAreaName = jazzExtension.extractionConfig.projectAreaName
+        extractionTask.zipPath = jazzExtension.extractionConfig.zipPath
+        extractionTask.templateId = jazzExtension.extractionConfig.templateId
+        extractionTask.repositoryUrl = jazzExtension.extractionConfig.repository.repositoryUrl
+        extractionTask.username = jazzExtension.extractionConfig.repository.username
+        extractionTask.password = jazzExtension.extractionConfig.repository.password
+    } 
 }

@@ -15,7 +15,6 @@
  */
 package com.dentsads.rtc.build.gradle.tasks
 
-import com.dentsads.rtc.build.gradle.internal.model.RepositoryAuthentication
 import com.ibm.team.process.client.IProcessClientService
 import com.ibm.team.process.client.IProcessItemService
 import com.ibm.team.process.common.IProcessDefinition
@@ -31,35 +30,46 @@ import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.core.runtime.SubProgressMonitor
 import org.gradle.api.DefaultTask
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 
 class ExportProcessTemplate extends DefaultTask{
-    @Input String templateName
+    @Input String projectAreaName
     @Input String templateId
-    @Input String zipPath
-    String templateTempSuffix = "-temp"
-    @Input RepositoryAuthentication repository
-    
+    @InputDirectory @Optional File zipPath
+    @Input @Optional String templateTempSuffix = "-temp"
+    @Input String repositoryUrl;
+    @Input String username;
+    @Input String password;
+
+    Logger logger = Logging.getLogger(ExportProcessTemplate.class);
     ITeamRepository teamRepo
     IProcessItemService service
     
     @TaskAction
     void exportProcessDefinition() {
-        println "execute export"
+        if (!getZipPath()) {
+            setZipPath(new File(System.getProperty("java.io.tmpdir")))
+            logger.quiet("zipPath default is: " + zipPath)
+        }
         
         TeamPlatform.startup();
         
+
         IProgressMonitor monitor = new NullProgressMonitor();
         
-        teamRepo = login(repository.repositoryUrl,
-                repository.username, repository.password, monitor);
+        teamRepo = login(repositoryUrl,
+                username, password, monitor);
         
         service = (IProcessItemService) teamRepo.getClientLibrary(IProcessItemService.class);
-        IProjectAreaHandle projectAreaHandle = getProjectArea(templateName);
-        IProcessDefinition definition = ((ProcessClientService) service).createProcessDefinitionFromProjectArea(projectAreaHandle, templateName + templateTempSuffix, templateName + templateTempSuffix, "", monitor);
+        IProjectAreaHandle projectAreaHandle = getProjectArea(projectAreaName);
+        IProcessDefinition definition = ((ProcessClientService) service).createProcessDefinitionFromProjectArea(projectAreaHandle, projectAreaName + templateTempSuffix, templateName + templateTempSuffix, "", monitor);
         
-        exportProcessDefinition(zipPath, templateName +templateTempSuffix, definition, monitor);
+        exportProcessDefinition(zipPath.absolutePath, projectAreaName +templateTempSuffix, definition, monitor);
 
         ((ProcessClientService) service).delete(definition, true, monitor);
         
@@ -139,7 +149,7 @@ class ExportProcessTemplate extends DefaultTask{
         // write content to file
         try {
             FileOutputStream stream = new FileOutputStream(archive);
-            this.repo.contentManager().retrieveContent(content, stream, new SubProgressMonitor(monitor, 800));
+            teamRepo.contentManager().retrieveContent(content, stream, new SubProgressMonitor(monitor, 800));
         } catch (FileNotFoundException e) {
             throw new TeamRepositoryException(e);
         }

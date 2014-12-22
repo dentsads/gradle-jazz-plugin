@@ -13,12 +13,17 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.dentsads.rtc.build.gradle.internal.model
+package com.dentsads.rtc.build.gradle.internal.model;
 
-import org.gradle.api.tasks.Input;
+public class BuildType {
+    String name
+    String templateName
+    String templateId
+    String zipFileName
+    DeploymentConfig deployment
 
-public class RepositoryAuthentication {
-    String repositoryUrl;
-    String username;
-    String password;
+    public BuildType(String name) {
+        this.name = name;
+    }
+
 }
