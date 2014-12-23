@@ -19,11 +19,10 @@ import com.dentsads.rtc.build.gradle.internal.dsl.BuildTypeFactory
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigDsl
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigFactory
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
-import com.dentsads.rtc.build.gradle.tasks.BuildTask
 import com.dentsads.rtc.build.gradle.internal.BuildTypeData
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
 import com.dentsads.rtc.build.gradle.tasks.ExportProcessTemplate
-import org.gradle.api.GradleException
+import com.dentsads.rtc.build.gradle.tasks.InstantiateProcessTemplate
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -83,7 +82,7 @@ class JazzPlugin implements Plugin<Project> {
 
         project.afterEvaluate{
             createTasks()
-            createExportTask()
+            //createExportTask()
         }
     }
 
@@ -103,12 +102,13 @@ class JazzPlugin implements Plugin<Project> {
 
         logger.quiet("Creating Tasks for Build Type declarations!")
         for (BuildType buildType : buildTypes.values()) {
-            Task testTask = project.tasks.create("testingAssemble${buildType.name.capitalize()}", BuildTask)
-            testTask.description = "Assembles all ${buildType.name.capitalize()} builds"
-            testTask.group = "JazzTesting"
-            
-            testTask.getOut = buildType.name
+            createBuildTypeTasks(buildType)
         }
+    }
+    
+    public void createBuildTypeTasks(BuildType buildType) {
+        createAssemblyTask(buildType)
+        createInstantiationTask(buildType)
     }
     
     public void createExportTask() {
@@ -123,4 +123,24 @@ class JazzPlugin implements Plugin<Project> {
         extractionTask.username = jazzExtension.extractionConfig.repository.username
         extractionTask.password = jazzExtension.extractionConfig.repository.password
     } 
+    
+    private void createInstantiationTask(BuildType buildType) {
+        Task instantiationTask = project.tasks.create("instantiate${buildType.name.capitalize()}", InstantiateProcessTemplate)
+        instantiationTask.description = "Assembles, imports into RTC and instantiates the Process Template declared by buildType ${buildType.name}."
+        instantiationTask.group = JAZZ_GROUP_NAME
+
+        instantiationTask.templateName = buildType.templateName
+        instantiationTask.templateId = buildType.templateId
+        instantiationTask.repositoryUrl = buildType.deployment.repository.repositoryUrl
+        instantiationTask.username = buildType.deployment.repository.username
+        instantiationTask.password = buildType.deployment.repository.password
+        
+        // depends on assembly
+        //developmentTask.dependsOn project.tasks.findByName("")
+    }
+    
+    private void createAssemblyTask(BuildType buildType) {
+        
+        
+    }
 }

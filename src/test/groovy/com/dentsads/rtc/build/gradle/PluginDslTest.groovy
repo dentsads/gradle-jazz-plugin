@@ -18,8 +18,10 @@ package com.dentsads.rtc.build.gradle
 import com.dentsads.rtc.build.gradle.internal.BaseTest
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
+import org.junit.Ignore
 
 class PluginDslTest extends BaseTest {
+    
     public void testDeploymentConfigs() {
         //Project project = ProjectBuilder.builder().withProjectDir(
         //        new File(testDir, "deploymentConfigs")).build()
@@ -81,31 +83,75 @@ class PluginDslTest extends BaseTest {
         }
 
     }
-    
+
     public void testProjectAreaExtraction() {
         Project project = ProjectBuilder.builder().build()
 
         project.apply plugin: 'jazz'
 
         project.jazz {
+
             extractionConfig {
                 projectAreaName "TestArea1"
                 templateId "TestArea1"
                 //zipPath "Path1"
 
                 repository {
-                    username "TestJazzAdmin1"
-                    password "TestJazzAdmin1"
+                    username "JazzAdmin"
+                    password "JazzAdmin"
                     repositoryUrl "https://localhost:9443/ccm"
                 }
             }
         }
 
         JazzPlugin plugin = project.jazz.plugin
-        plugin.createExportTask()
+        //plugin.createExportTask()
         //project.tasks.exportProcessTemplate.execute()
 
         findNamedItem(project.tasks.asMap.values(), "exportProcessTemplate", "buildType Task Names");
+
+    }
+
+    public void testInstatiationTask() {
+        Project project = ProjectBuilder.builder().build()
+
+        project.apply plugin: 'jazz'
+
+        project.jazz {
+
+            deploymentConfigs {
+                config_localhost{
+                    activeFeatureIds = ['com.ibm.foo.feature',
+                                        'com.bosch.foo.feature']
+                    repository {
+                        username "JazzAdmin"
+                        password "JazzAdmin"
+                        repositoryUrl "https://localhost:9443/ccm"
+                    }
+                }
+            }
+
+            buildTypes {
+                test{
+                    templateName "foo"
+                    templateId "fooId"
+                    deployment deploymentConfigs.config_localhost
+                }
+
+            }
+
+        }
+
+        JazzPlugin plugin = project.jazz.plugin
+        plugin.createTasks()
+        
+        project.tasks.instantiateTest.execute()
+
+        String[] buildTypeTaskNames = ["instantiateTest"];
+
+        for (String buildTypeTaskName : buildTypeTaskNames) {
+            findNamedItem(project.tasks.asMap.values(), buildTypeTaskName, "buildType Task Names");
+        }
 
     }
 }

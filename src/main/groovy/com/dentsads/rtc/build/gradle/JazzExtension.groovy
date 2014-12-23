@@ -54,6 +54,7 @@ class JazzExtension {
     
     void extractionConfig(Closure closure) {
         ConfigureUtil.configure(closure, extractionConfig)
+        plugin.createExportTask()
     }
 
 }

@@ -44,9 +44,13 @@ def prepareRTCUploads = { relativeLibDir ->
             artifactId it.getName().replaceFirst("[.][^.]+\$", "")
             version '4.0.3'
 
-            artifact file("lib/" + it.getName())
+            artifact file(relativeLibDir + "/" + it.getName())
         }
     }
 }
 
+/* uncomment next line in order to add publishing containers for RTC Plain APIs.
+ * After that execute the 'publish' or 'publishToMavenLocal' task in order to publish the APIs
+ * to the specified repositoryUri or the local .m2 repository, respectively.
+ */
 //prepareRTCUploads('lib')

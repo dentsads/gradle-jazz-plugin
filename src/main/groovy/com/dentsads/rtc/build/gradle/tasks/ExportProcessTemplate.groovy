@@ -29,74 +29,46 @@ import com.ibm.team.repository.common.TeamRepositoryException
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.core.runtime.SubProgressMonitor
-import org.gradle.api.DefaultTask
-import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 
-class ExportProcessTemplate extends DefaultTask{
+class ExportProcessTemplate extends BaseTask{
     @Input String projectAreaName
     @Input String templateId
     @InputDirectory @Optional File zipPath
     @Input @Optional String templateTempSuffix = "-temp"
-    @Input String repositoryUrl;
-    @Input String username;
-    @Input String password;
 
-    Logger logger = Logging.getLogger(ExportProcessTemplate.class);
-    ITeamRepository teamRepo
     IProcessItemService service
+    ITeamRepository teamRepo
+    IProgressMonitor monitor
     
     @TaskAction
-    void exportProcessDefinition() {
+    void exportProcessTemplate() {
         if (!getZipPath()) {
             setZipPath(new File(System.getProperty("java.io.tmpdir")))
-            logger.quiet("zipPath default is: " + zipPath)
+            logger.quiet("zipPath default is '$zipPath'")
         }
         
         TeamPlatform.startup();
-        
-
-        IProgressMonitor monitor = new NullProgressMonitor();
-        
-        teamRepo = login(repositoryUrl,
+        this.monitor = new NullProgressMonitor()
+        this.teamRepo = login(repositoryUrl,
                 username, password, monitor);
-        
+
         service = (IProcessItemService) teamRepo.getClientLibrary(IProcessItemService.class);
         IProjectAreaHandle projectAreaHandle = getProjectArea(projectAreaName);
         IProcessDefinition definition = ((ProcessClientService) service).createProcessDefinitionFromProjectArea(projectAreaHandle, projectAreaName + templateTempSuffix, projectAreaName + templateTempSuffix, "", monitor);
         
         exportProcessDefinition(zipPath.absolutePath, projectAreaName +templateTempSuffix, definition, monitor);
 
+        logger.info("deleting temporarily created template '$definition.name' from '$repositoryUrl'")
         ((ProcessClientService) service).delete(definition, true, monitor);
         
         TeamPlatform.shutdown();
     }
-    
-    public ITeamRepository login(String repositoryAddress, final String user, final String pass, IProgressMonitor monitor) throws TeamRepositoryException {
-        ITeamRepository repository = TeamPlatform.getTeamRepositoryService().getTeamRepository(repositoryAddress);
-        repository.registerLoginHandler(new ITeamRepository.ILoginHandler() {
-            public ITeamRepository.ILoginHandler.ILoginInfo challenge(ITeamRepository repo) {
-                return new ITeamRepository.ILoginHandler.ILoginInfo() {
-                    public String getUserId() {
-                        return user;
-                    }
-                    public String getPassword() {
-                        return pass;
-                    }
-                };
-            }
-        });
-        monitor.subTask("Contacting " + repository.getRepositoryURI() + "...");
-        repository.login(monitor);
-        monitor.subTask("Connected");
-        return repository;
-    }
 
-    public IProjectArea getProjectArea(final String projectAreaName) throws TeamRepositoryException
+    private IProjectArea getProjectArea(final String projectAreaName) throws TeamRepositoryException
     {
         List<IProjectArea> projectAreas = (List<IProjectArea>) service.findAllProjectAreas(IProcessClientService.ALL_PROPERTIES, new NullProgressMonitor());
 
@@ -112,11 +84,11 @@ class ExportProcessTemplate extends DefaultTask{
 
     }
 
-    public String exportProcessDefinition(String archivePath, String archiveName, IProcessDefinition definition, IProgressMonitor monitor) throws TeamRepositoryException, IOException {
+    private String exportProcessDefinition(String archivePath, String archiveName, IProcessDefinition definition, IProgressMonitor monitor) throws TeamRepositoryException, IOException {
         monitor.beginTask("", 1000); //$NON-NLS-1$
 
         String exportPath = archivePath + System.getProperty("file.separator") + archiveName + ".zip";
-
+        
         File selectedDir = new File(archivePath);
         if (!selectedDir.exists()) {
             throw new TeamRepositoryException("Directory does not exist");
@@ -129,6 +101,7 @@ class ExportProcessTemplate extends DefaultTask{
         tempZipFile.createNewFile();
 
         try {
+            logger.quiet("exporting $tempZipFile")
             exportToArchive(definition, tempZipFile, new SubProgressMonitor(monitor, 700));
             return exportPath;
         } finally {
