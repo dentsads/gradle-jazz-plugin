@@ -67,7 +67,7 @@ class ExportProcessTemplate extends DefaultTask{
         
         service = (IProcessItemService) teamRepo.getClientLibrary(IProcessItemService.class);
         IProjectAreaHandle projectAreaHandle = getProjectArea(projectAreaName);
-        IProcessDefinition definition = ((ProcessClientService) service).createProcessDefinitionFromProjectArea(projectAreaHandle, projectAreaName + templateTempSuffix, templateName + templateTempSuffix, "", monitor);
+        IProcessDefinition definition = ((ProcessClientService) service).createProcessDefinitionFromProjectArea(projectAreaHandle, projectAreaName + templateTempSuffix, projectAreaName + templateTempSuffix, "", monitor);
         
         exportProcessDefinition(zipPath.absolutePath, projectAreaName +templateTempSuffix, definition, monitor);
 

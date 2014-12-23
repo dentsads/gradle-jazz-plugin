@@ -16,7 +16,6 @@
 package com.dentsads.rtc.build.gradle
 
 import com.dentsads.rtc.build.gradle.internal.BaseTest
-import com.dentsads.rtc.build.gradle.internal.model.BuildType
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 
@@ -104,7 +103,9 @@ class PluginDslTest extends BaseTest {
 
         JazzPlugin plugin = project.jazz.plugin
         plugin.createExportTask()
-        project.tasks.exportProcessTemplate.execute()
-        assertTrue(true)
+        //project.tasks.exportProcessTemplate.execute()
+
+        findNamedItem(project.tasks.asMap.values(), "exportProcessTemplate", "buildType Task Names");
+
     }
 }

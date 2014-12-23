@@ -1,5 +1,9 @@
 apply plugin: 'groovy'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+group='com.dentsads.rtc.build.gradle'
+version='1.0-SNAPSHOT'
 
 dependencies {
     compile gradleApi()
@@ -8,17 +12,41 @@ dependencies {
     compile fileTree(dir: 'lib', includes: ['*.jar'])
 }
 
+def repositoryUri = uri('build/repo')
+
 repositories {
     mavenCentral()
+    maven { url repositoryUri}
 }
-
-group='com.dentsads.rtc.build.gradle'
-version='1.0-SNAPSHOT'
 
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url: uri('build/repo'))
+            repository(url: repositoryUri)
+            
         }
     }
 }
+
+publishing {
+    repositories {
+        maven {
+            url repositoryUri
+        }
+    }
+}
+
+def prepareRTCUploads = { relativeLibDir ->
+    fileTree(dir: relativeLibDir, includes: ['*.jar']).each {
+        publishing.publications.create(it.getName(), MavenPublication.class)
+        publishing.publications.getByName(it.getName()) {
+            groupId 'com.ibm.team'
+            artifactId it.getName().replaceFirst("[.][^.]+\$", "")
+            version '4.0.3'
+
+            artifact file("lib/" + it.getName())
+        }
+    }
+}
+
+//prepareRTCUploads('lib')
