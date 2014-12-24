@@ -15,9 +15,12 @@
  */
 package com.dentsads.rtc.build.gradle
 
+import com.dentsads.rtc.build.gradle.api.JazzSourceSet
+import com.dentsads.rtc.build.gradle.internal.api.DefaultJazzSourceSet
 import com.dentsads.rtc.build.gradle.internal.dsl.BuildTypeFactory
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigDsl
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigFactory
+import com.dentsads.rtc.build.gradle.internal.dsl.JazzSourceSetFactory
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
 import com.dentsads.rtc.build.gradle.internal.BuildTypeData
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
@@ -36,9 +39,10 @@ import javax.inject.Inject
 
 class JazzPlugin implements Plugin<Project> {
     static final String EXPORT_PROCESS_TEMPLATE_TASK_NAME = 'exportProcessTemplate'
+    static final String DEPLOY_ALL_TASK_NAME = 'deployAll'
     static final String JAZZ_GROUP_NAME = 'Jazz'
     
-    final Map<String, BuildType> buildTypes = [:]
+    final Map<String, BuildTypeData> buildTypes = [:]
     final Map<String, DeploymentConfig> deploymentConfigs = [:]
 
     Logger logger = Logging.getLogger(JazzPlugin.class);
@@ -65,12 +69,19 @@ class JazzPlugin implements Plugin<Project> {
         def buildTypeContainer = project.container(BuildType,
                 new BuildTypeFactory(instantiator,  project.fileResolver))
 
+        def sourceSetsContainer = project.container(JazzSourceSet,
+                new JazzSourceSetFactory(instantiator,  project.fileResolver))
+        
         def deploymentConfigContainer = project.container(DeploymentConfig,
                 new DeploymentConfigFactory(instantiator, (ProjectInternal)project))
 
         jazzExtension = project.extensions.create('jazz', JazzExtension, this, (ProjectInternal)project, instantiator,
-        buildTypeContainer, deploymentConfigContainer)
+        buildTypeContainer, deploymentConfigContainer, sourceSetsContainer)
 
+        sourceSetsContainer.whenObjectAdded { JazzSourceSet sourceSet ->
+            sourceSet.setRoot(String.format("src/%s", sourceSet.getName()))
+        }
+        
         buildTypeContainer.whenObjectAdded { BuildType buildType ->
             addBuildType(buildType)
         }
@@ -88,9 +99,21 @@ class JazzPlugin implements Plugin<Project> {
 
    private void addBuildType(BuildType buildType) {
         String name = buildType.name
-        BuildTypeData buildTypeData = new BuildTypeData(buildType, project)
-        project.tasks.assemble.dependsOn buildTypeData.assembleTask
-        buildTypes[name] = buildType
+        checkName(name, "BuildType")
+
+       def sourceSet = jazzExtension.sourceSets.maybeCreate(name)
+       
+        BuildTypeData buildTypeData = new BuildTypeData(buildType, sourceSet, project)
+        buildTypes[name] = buildTypeData
+    }
+    
+    private static void checkName(String name, String displayName) {
+         if ("main".equals(name)) {
+            throw new RuntimeException("${displayName} names cannot be 'main'")
+         
+         if ("All".equals(name))
+             throw new RuntimeException("${displayName} names cannot be 'All'")
+        }
     }
     
     public void createTasks() {
@@ -101,14 +124,17 @@ class JazzPlugin implements Plugin<Project> {
         hasCreatedTasks = true
 
         logger.quiet("Creating Tasks for Build Type declarations!")
-        for (BuildType buildType : buildTypes.values()) {
-            createBuildTypeTasks(buildType)
+        
+        createDeploymentTaskAll()
+        
+        for (BuildTypeData buildTypeData : buildTypes.values()) {
+            createBuildTypeTasks(buildTypeData)
         }
     }
     
-    public void createBuildTypeTasks(BuildType buildType) {
-        createAssemblyTask(buildType)
-        createInstantiationTask(buildType)
+    public void createBuildTypeTasks(BuildTypeData buildTypeData) {
+        createAssemblyTask(buildTypeData)
+        createDeploymentTask(buildTypeData)
     }
     
     public void createExportTask() {
@@ -124,22 +150,34 @@ class JazzPlugin implements Plugin<Project> {
         extractionTask.password = jazzExtension.extractionConfig.repository.password
     } 
     
-    private void createInstantiationTask(BuildType buildType) {
-        Task instantiationTask = project.tasks.create("instantiate${buildType.name.capitalize()}", InstantiateProcessTemplate)
-        instantiationTask.description = "Assembles, imports into RTC and instantiates the Process Template declared by buildType ${buildType.name}."
-        instantiationTask.group = JAZZ_GROUP_NAME
-
-        instantiationTask.templateName = buildType.templateName
-        instantiationTask.templateId = buildType.templateId
-        instantiationTask.repositoryUrl = buildType.deployment.repository.repositoryUrl
-        instantiationTask.username = buildType.deployment.repository.username
-        instantiationTask.password = buildType.deployment.repository.password
-        
-        // depends on assembly
-        //developmentTask.dependsOn project.tasks.findByName("")
+    private void createDeploymentTaskAll() {
+        Task deploymentTask = project.tasks.create(DEPLOY_ALL_TASK_NAME)
+        deploymentTask.description = "Assembles, imports into RTC and instantiates all Process Template declared by the build types."
+        deploymentTask.group = JAZZ_GROUP_NAME
     }
     
-    private void createAssemblyTask(BuildType buildType) {
+    private void createDeploymentTask(BuildTypeData buildTypeData) {
+        Task deploymentTask = project.tasks.create("deploy${buildTypeData.buildType.name.capitalize()}", InstantiateProcessTemplate)
+        deploymentTask.description = "Assembles, imports into RTC and instantiates the Process Template declared by buildType ${buildTypeData.buildType.name}."
+        deploymentTask.group = JAZZ_GROUP_NAME
+        
+        //logger.quiet("master: " + buildTypeData.sourceSet.getMaster().toString())
+        //logger.quiet("slave: " + buildTypeData.sourceSet.getSlave().toString())
+
+        deploymentTask.templateName = buildTypeData.buildType.templateName
+        deploymentTask.templateId = buildTypeData.buildType.templateId
+        deploymentTask.repositoryUrl = buildTypeData.buildType.deployment.repository.repositoryUrl
+        deploymentTask.username = buildTypeData.buildType.deployment.repository.username
+        deploymentTask.password = buildTypeData.buildType.deployment.repository.password
+        
+        // depends on assembly
+        //deploymentTask.dependsOn project.tasks.findByName("")
+        
+        // deployAll depends on this deployment task
+        project.tasks.findByName(DEPLOY_ALL_TASK_NAME).dependsOn deploymentTask
+    }
+    
+    private void createAssemblyTask(BuildTypeData buildTypeData) {
         
         
     }

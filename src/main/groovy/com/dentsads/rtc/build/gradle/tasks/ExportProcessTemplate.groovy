@@ -62,7 +62,7 @@ class ExportProcessTemplate extends BaseTask{
         
         exportProcessDefinition(zipPath.absolutePath, projectAreaName +templateTempSuffix, definition, monitor);
 
-        logger.info("deleting temporarily created template '$definition.name' from '$repositoryUrl'")
+        logger.quiet("deleting temporarily created template '$definition.name' from '$repositoryUrl'")
         ((ProcessClientService) service).delete(definition, true, monitor);
         
         TeamPlatform.shutdown();

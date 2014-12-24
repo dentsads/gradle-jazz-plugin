@@ -15,6 +15,7 @@
  */
 package com.dentsads.rtc.build.gradle
 
+import com.dentsads.rtc.build.gradle.api.JazzSourceSet
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
 import com.dentsads.rtc.build.gradle.internal.model.ExtractionConfig
@@ -28,16 +29,19 @@ import org.gradle.util.ConfigureUtil
 class JazzExtension {
     final NamedDomainObjectContainer<BuildType> buildTypes
     final NamedDomainObjectContainer<DeploymentConfig> deploymentConfigs
+    final NamedDomainObjectContainer<JazzSourceSet> sourceSets
     final ExtractionConfig extractionConfig
 
     protected final JazzPlugin plugin
 
     public JazzExtension(JazzPlugin plugin, ProjectInternal project, Instantiator instantiator,
                         NamedDomainObjectContainer<BuildType> buildTypes,
-                        NamedDomainObjectContainer<DeploymentConfig> deploymentConfigs) {
+                        NamedDomainObjectContainer<DeploymentConfig> deploymentConfigs,
+                        NamedDomainObjectContainer<JazzSourceSet> sourceSets) {
         this.plugin = plugin
         this.buildTypes = buildTypes
         this.deploymentConfigs = deploymentConfigs
+        this.sourceSets = sourceSets
         this.extractionConfig = instantiator.newInstance(ExtractionConfig.class)
         this.extractionConfig.repository = instantiator.newInstance(RepositoryAuthentication.class)
     }
@@ -50,6 +54,11 @@ class JazzExtension {
     void buildTypes(Action<? super NamedDomainObjectContainer<BuildType>> action) {
         //plugin.checkTasksAlreadyCreated();
         action.execute(buildTypes)
+    }
+    
+    void sourceSets(Action<NamedDomainObjectContainer<JazzSourceSet>> action) {
+        //plugin.checkTasksAlreadyCreated();
+        action.execute(sourceSets)
     }
     
     void extractionConfig(Closure closure) {

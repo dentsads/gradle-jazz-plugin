@@ -15,10 +15,17 @@
  */
 package com.dentsads.rtc.build.gradle.tasks
 
+import com.ibm.team.process.common.IProcessDefinition
+import com.ibm.team.process.internal.client.IProcessInternalClientService
+import com.ibm.team.process.internal.common.util.ApplicationVisibilityConstants
 import com.ibm.team.repository.client.ITeamRepository
 import com.ibm.team.repository.client.TeamPlatform
+import com.ibm.team.repository.common.IContent
+import com.ibm.team.repository.common.LineDelimiter
+import com.ibm.team.repository.common.TeamRepositoryException
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
+import org.eclipse.core.runtime.SubProgressMonitor
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 
@@ -26,22 +33,58 @@ class InstantiateProcessTemplate extends BaseTask{
 
     @Input String templateName
     @Input String templateId
-
+    String zipPath = "/tmp/ScrumTestProjectArea1-temp.zip"
+    
     ITeamRepository teamRepo
     IProgressMonitor monitor
     
     @TaskAction
     void instantiateProcessTemplate() {
-        TeamPlatform.startup();
+        if (!TeamPlatform.isStarted()) TeamPlatform.startup();
         this.monitor = new NullProgressMonitor()
         this.teamRepo = login(repositoryUrl,
                 username, password, monitor);
-        importProcesTemplate(templateName, templateId)
-        
-        TeamPlatform.shutdown();
-    }
-    
-    private void importProcesTemplate(String templateName, String templateId) {
+
         logger.quiet("importing template '$templateName' to repository '$repositoryUrl'")
+        importProcessDefinition(zipPath, templateId, templateName, templateName, monitor)
+
+        // TODO: Find a workaround for double shutdown bug! Try Plain API > 4.0.4
+        //if (TeamPlatform.isStarted()) TeamPlatform.shutdown();
+    }
+
+    private IProcessDefinition importProcessDefinition(String archivePath, String definitionId, String definitionName, String definitionToOverwrite, IProgressMonitor monitor) throws TeamRepositoryException {
+        if (monitor == null) {
+            monitor = new NullProgressMonitor();
+        }
+        monitor.beginTask("", 1000); //$NON-NLS-1$
+
+        File archive;
+        boolean isTempArchive = false;
+        archive = new File(archivePath);
+
+        monitor.worked(50); // Creating a zip file could take some time
+        IContent content;
+        try {
+            content = createBinaryContentFromFile(archive, new SubProgressMonitor(monitor, 350));
+        } finally {
+            if (isTempArchive) {
+                archive.delete();
+            }
+        }
+
+        IProcessInternalClientService processClient = (IProcessInternalClientService) teamRepo.getClientLibrary(IProcessInternalClientService.class);
+        return processClient.importProcessDefinitionZip(content, definitionId, definitionName, definitionToOverwrite != null, ApplicationVisibilityConstants.SENTINEL_APPLICATION_ID, new SubProgressMonitor(monitor, 600));
+    }
+
+    private IContent createBinaryContentFromFile(File file, IProgressMonitor monitor) throws TeamRepositoryException {
+        if (!file.exists()) {
+            return null;
+        }
+        try {
+            FileInputStream stream = new FileInputStream(file);
+            return teamRepo.contentManager().storeContent(IContent.CONTENT_TYPE_UNKNOWN, null, LineDelimiter.LINE_DELIMITER_NONE, stream, null, monitor);
+        } catch (IOException e) {
+            throw new TeamRepositoryException(e);
+        }
     }
 }
