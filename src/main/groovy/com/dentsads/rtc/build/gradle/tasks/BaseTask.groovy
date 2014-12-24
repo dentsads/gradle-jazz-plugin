@@ -28,21 +28,6 @@ class BaseTask extends DefaultTask{
     @Input String repositoryUrl;
     @Input String username;
     @Input String password;
-    
-    /*
-    public BaseTask() {
-        TeamPlatform.startup()
-        
-        println repositoryUrl
-        
-        this.teamRepo = login(repositoryUrl,
-                username, password, monitor);
-
-        this.monitor = new NullProgressMonitor()
-        
-        TeamPlatform.shutdown()
-    }
-    */
 
     protected ITeamRepository login(String repositoryAddress, final String user, final String pass, IProgressMonitor monitor) throws TeamRepositoryException {
         ITeamRepository repository = TeamPlatform.getTeamRepositoryService().getTeamRepository(repositoryAddress);

@@ -152,7 +152,7 @@ class JazzPlugin implements Plugin<Project> {
     
     private void createDeploymentTaskAll() {
         Task deploymentTask = project.tasks.create(DEPLOY_ALL_TASK_NAME)
-        deploymentTask.description = "Assembles, imports into RTC and instantiates all Process Template declared by the build types."
+        deploymentTask.description = "Assembles, imports into RTC and instantiates all Process Templates declared by the build types."
         deploymentTask.group = JAZZ_GROUP_NAME
     }
     
