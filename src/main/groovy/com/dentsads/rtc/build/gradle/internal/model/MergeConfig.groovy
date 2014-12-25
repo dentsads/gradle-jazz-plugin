@@ -15,18 +15,7 @@
  */
 package com.dentsads.rtc.build.gradle.internal.model
 
-import org.gradle.util.ConfigureUtil
-
-class ExtractionConfig {
-    String projectAreaName
-    MergeConfig mergeConfig
-    RepositoryAuthentication repository
-
-    def repository(Closure closure) {
-        ConfigureUtil.configure(closure, repository)
-    }
-
-    def mergeConfig(Closure closure) {
-        ConfigureUtil.configure(closure, mergeConfig)
-    }
+class MergeConfig implements Serializable {
+    File mergeTargetDirectory
+    File mergeToolExecutable
 }

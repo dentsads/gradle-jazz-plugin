@@ -9,6 +9,7 @@ dependencies {
     compile gradleApi()
     compile localGroovy()
     compile 'com.google.guava:guava:18.0'
+    compile "org.codehaus.groovy:groovy-backports-compat23:2.3.5"
     compile fileTree(dir: 'lib', includes: ['*.jar'])
 }
 
@@ -22,8 +23,7 @@ repositories {
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url: repositoryUri)
-            
+            repository(url: mavenLocal().url)
         }
     }
 }
@@ -42,7 +42,7 @@ def prepareRTCUploads = { relativeLibDir ->
         publishing.publications.getByName(it.getName()) {
             groupId 'com.ibm.team'
             artifactId it.getName().replaceFirst("[.][^.]+\$", "")
-            version '4.0.3'
+            version '5.0.2'
 
             artifact file(relativeLibDir + "/" + it.getName())
         }

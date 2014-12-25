@@ -48,8 +48,7 @@ class InstantiateProcessTemplate extends BaseTask{
         logger.quiet("importing template '$templateName' to repository '$repositoryUrl'")
         importProcessDefinition(zipPath, templateId, templateName, templateName, monitor)
 
-        // TODO: Find a workaround for double shutdown bug! Try Plain API > 4.0.4
-        //if (TeamPlatform.isStarted()) TeamPlatform.shutdown();
+        if (TeamPlatform.isStarted()) TeamPlatform.shutdown();
     }
 
     private IProcessDefinition importProcessDefinition(String archivePath, String definitionId, String definitionName, String definitionToOverwrite, IProgressMonitor monitor) throws TeamRepositoryException {

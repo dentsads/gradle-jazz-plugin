@@ -30,26 +30,29 @@ import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.core.runtime.SubProgressMonitor
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 
 class ExportProcessTemplate extends BaseTask{
     @Input String projectAreaName
-    @Input String templateId
-    @InputDirectory @Optional File zipPath
     @Input @Optional String templateTempSuffix = "-temp"
-
+    @OutputDirectory File zipPath
+    
+    static final String PROCESS_TEMPLATE_EXPORT_DIR_NAME = 'templateExports'
+    
     IProcessItemService service
     ITeamRepository teamRepo
     IProgressMonitor monitor
     
     @TaskAction
     void exportProcessTemplate() {
+        /*
         if (!getZipPath()) {
-            setZipPath(new File(System.getProperty("java.io.tmpdir")))
-            logger.quiet("zipPath default is '$zipPath'")
+            setZipPath(createBuildExportPath())
+            logger.quiet("zip export folder default is '$zipPath'")
         }
+        */
         
         TeamPlatform.startup();
         this.monitor = new NullProgressMonitor()
@@ -60,7 +63,7 @@ class ExportProcessTemplate extends BaseTask{
         IProjectAreaHandle projectAreaHandle = getProjectArea(projectAreaName);
         IProcessDefinition definition = ((ProcessClientService) service).createProcessDefinitionFromProjectArea(projectAreaHandle, projectAreaName + templateTempSuffix, projectAreaName + templateTempSuffix, "", monitor);
         
-        exportProcessDefinition(zipPath.absolutePath, projectAreaName +templateTempSuffix, definition, monitor);
+        exportProcessDefinition(zipPath.absolutePath, projectAreaName, definition, monitor);
 
         logger.quiet("deleting temporarily created template '$definition.name' from '$repositoryUrl'")
         ((ProcessClientService) service).delete(definition, true, monitor);
@@ -101,7 +104,7 @@ class ExportProcessTemplate extends BaseTask{
         tempZipFile.createNewFile();
 
         try {
-            logger.quiet("exporting $tempZipFile")
+            logger.quiet("exporting to $tempZipFile")
             exportToArchive(definition, tempZipFile, new SubProgressMonitor(monitor, 700));
             return exportPath;
         } finally {
@@ -126,5 +129,12 @@ class ExportProcessTemplate extends BaseTask{
         } catch (FileNotFoundException e) {
             throw new TeamRepositoryException(e);
         }
+    }
+
+    // Deletes and creates Build Export Path Folder for every execution
+    private File createBuildExportPath() {
+        File exportPath = new File(project.buildDir,  File.separator + PROCESS_TEMPLATE_EXPORT_DIR_NAME)
+        
+        return exportPath.exists() ? {exportPath.deleteDir() ; exportPath.mkdir() ; return exportPath}() : {exportPath.mkdir() ; return exportPath}()
     }
 }

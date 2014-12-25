@@ -19,6 +19,7 @@ import com.dentsads.rtc.build.gradle.api.JazzSourceSet
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
 import com.dentsads.rtc.build.gradle.internal.model.ExtractionConfig
+import com.dentsads.rtc.build.gradle.internal.model.MergeConfig
 import com.dentsads.rtc.build.gradle.internal.model.RepositoryAuthentication
 import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
@@ -43,6 +44,7 @@ class JazzExtension {
         this.deploymentConfigs = deploymentConfigs
         this.sourceSets = sourceSets
         this.extractionConfig = instantiator.newInstance(ExtractionConfig.class)
+        this.extractionConfig.mergeConfig = instantiator.newInstance(MergeConfig.class)
         this.extractionConfig.repository = instantiator.newInstance(RepositoryAuthentication.class)
     }
 
@@ -63,7 +65,7 @@ class JazzExtension {
     
     void extractionConfig(Closure closure) {
         ConfigureUtil.configure(closure, extractionConfig)
-        plugin.createExportTask()
+        //plugin.createExportTask()
     }
 
 }

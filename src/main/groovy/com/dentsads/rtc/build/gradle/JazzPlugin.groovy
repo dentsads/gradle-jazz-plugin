@@ -16,7 +16,6 @@
 package com.dentsads.rtc.build.gradle
 
 import com.dentsads.rtc.build.gradle.api.JazzSourceSet
-import com.dentsads.rtc.build.gradle.internal.api.DefaultJazzSourceSet
 import com.dentsads.rtc.build.gradle.internal.dsl.BuildTypeFactory
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigDsl
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigFactory
@@ -24,8 +23,10 @@ import com.dentsads.rtc.build.gradle.internal.dsl.JazzSourceSetFactory
 import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
 import com.dentsads.rtc.build.gradle.internal.BuildTypeData
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
+import com.dentsads.rtc.build.gradle.internal.model.MergeConfig
 import com.dentsads.rtc.build.gradle.tasks.ExportProcessTemplate
 import com.dentsads.rtc.build.gradle.tasks.InstantiateProcessTemplate
+import com.dentsads.rtc.build.gradle.tasks.MergeProcessTemplates
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -39,6 +40,7 @@ import javax.inject.Inject
 
 class JazzPlugin implements Plugin<Project> {
     static final String EXPORT_PROCESS_TEMPLATE_TASK_NAME = 'exportProcessTemplate'
+    static final String MERGE_PROCESS_TEMPLATE_TASK_NAME = 'mergeProcessTemplates'
     static final String DEPLOY_ALL_TASK_NAME = 'deployAll'
     static final String JAZZ_GROUP_NAME = 'Jazz'
     
@@ -93,7 +95,6 @@ class JazzPlugin implements Plugin<Project> {
 
         project.afterEvaluate{
             createTasks()
-            //createExportTask()
         }
     }
 
@@ -130,6 +131,8 @@ class JazzPlugin implements Plugin<Project> {
         for (BuildTypeData buildTypeData : buildTypes.values()) {
             createBuildTypeTasks(buildTypeData)
         }
+
+        createExportTask()
     }
     
     public void createBuildTypeTasks(BuildTypeData buildTypeData) {
@@ -143,11 +146,20 @@ class JazzPlugin implements Plugin<Project> {
         extractionTask.group = JAZZ_GROUP_NAME
         
         extractionTask.projectAreaName = jazzExtension.extractionConfig.projectAreaName
-        extractionTask.zipPath = jazzExtension.extractionConfig.zipPath
-        extractionTask.templateId = jazzExtension.extractionConfig.templateId
+        extractionTask.zipPath = project.file("${project.buildDir}/templateExports")
         extractionTask.repositoryUrl = jazzExtension.extractionConfig.repository.repositoryUrl
         extractionTask.username = jazzExtension.extractionConfig.repository.username
         extractionTask.password = jazzExtension.extractionConfig.repository.password
+        
+
+        File processTemplateZipFile = new File(extractionTask.zipPath, File.separator + extractionTask.projectAreaName + ".zip")
+        createMergeProcessTemplateTask(processTemplateZipFile)
+
+
+        // Task is never up to date and must always be executed
+        //extractionTask.outputs.upToDateWhen {false}
+        // Delete any previously created output files and directories
+        //extractionTask.outputs.files.each {File file -> file.deleteDir()}
     } 
     
     private void createDeploymentTaskAll() {
@@ -169,12 +181,30 @@ class JazzPlugin implements Plugin<Project> {
         deploymentTask.repositoryUrl = buildTypeData.buildType.deployment.repository.repositoryUrl
         deploymentTask.username = buildTypeData.buildType.deployment.repository.username
         deploymentTask.password = buildTypeData.buildType.deployment.repository.password
-        
-        // depends on assembly
-        //deploymentTask.dependsOn project.tasks.findByName("")
-        
+
         // deployAll depends on this deployment task
         project.tasks.findByName(DEPLOY_ALL_TASK_NAME).dependsOn deploymentTask
+    }
+    
+    public void createMergeProcessTemplateTask(File processTemplateZipFile) {
+        Task mergeTask = project.tasks.create(MERGE_PROCESS_TEMPLATE_TASK_NAME, MergeProcessTemplates)
+        mergeTask.description = 'Prepares a two way merge of the exported Process Template with given target directory contents.'
+        mergeTask.group = JAZZ_GROUP_NAME
+
+        MergeConfig mergeConfig = jazzExtension.extractionConfig.mergeConfig
+
+        //Task extractionTask = project.tasks.findByName(EXPORT_PROCESS_TEMPLATE_TASK_NAME)
+        
+        //File processTemplateZipFile = new File(extractionTask.zipPath, File.separator + extractionTask.projectAreaName + ".zip")
+
+        mergeTask.processTemplateZipFile = processTemplateZipFile
+        mergeTask.mergeTargetDirectory = mergeConfig.mergeTargetDirectory
+        mergeTask.mergeToolExecutable = mergeConfig.mergeToolExecutable
+
+        // Task is never up to date and must always be executed
+        //mergeTask.outputs.upToDateWhen {false}
+        
+        mergeTask.dependsOn project.tasks.findByName(EXPORT_PROCESS_TEMPLATE_TASK_NAME)
     }
     
     private void createAssemblyTask(BuildTypeData buildTypeData) {

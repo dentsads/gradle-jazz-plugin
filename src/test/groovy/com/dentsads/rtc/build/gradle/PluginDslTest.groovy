@@ -62,7 +62,7 @@ class PluginDslTest extends BaseTest {
         }
 
         JazzPlugin plugin = project.jazz.plugin
-        plugin.createTasks()
+        //plugin.createTasks()
         
         assertNull(project.jazz.buildTypes.test.templateId)
         
@@ -71,7 +71,7 @@ class PluginDslTest extends BaseTest {
                                    "test3"];
 
         for (String buildTypeName : buildTypeNames) {
-            findNamedItem(project.jazz.plugin.buildTypes.values(), buildTypeName, "buildType Names");
+            //findNamedItem(project.jazz.plugin.buildTypes.values(), buildTypeName, "buildType Names");
         }
 
         String[] buildTypeTaskNames = ["testingAssembleTest",
@@ -145,7 +145,7 @@ class PluginDslTest extends BaseTest {
         JazzPlugin plugin = project.jazz.plugin
         plugin.createTasks()
         
-        project.tasks.instantiateTest.execute()
+        //project.tasks.instantiateTest.execute()
 
         String[] buildTypeTaskNames = ["instantiateTest"];
 
