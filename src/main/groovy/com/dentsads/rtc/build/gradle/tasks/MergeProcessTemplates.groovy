@@ -43,7 +43,7 @@ class MergeProcessTemplates extends DefaultTask{
         String copyDirectoryPath = processTemplateZipFile.getAbsolutePath().substring(0,processTemplateZipFile.getAbsolutePath().lastIndexOf(File.separator))
         String templateBasePath = "${copyDirectoryPath}${File.separator}" + zipFileName + "${File.separator}template"
         String attachmentsPath = "${templateBasePath}${File.separator}attachments"
-        String attachmentFileString = "${templateBasePath}${File.separator}attachments.txt"
+        String attachmentFilePath = "${templateBasePath}${File.separator}attachments.txt"
 
         FileTree zip = project.zipTree(processTemplateZipFile)
 
@@ -57,7 +57,7 @@ class MergeProcessTemplates extends DefaultTask{
 
         // get array of all lines in attachments.txt
         def attachmentFileLines = []
-        new File( attachmentFileString ).eachLine { line ->
+        new File( attachmentFilePath ).eachLine { line ->
             attachmentFileLines << line
         }
 
@@ -97,17 +97,25 @@ class MergeProcessTemplates extends DefaultTask{
             }
 
         }
-
+        
         // Delete old attachments folder with non-transformed content
         new File(attachmentsPath).deleteDir()
 
         // Rename temp attachments folder with transformed content
         new File("${attachmentsPath}-temp").renameTo(attachmentsPath)
 
+        // Unzip the processContent.zip file in place and delete it
+        project.copy {
+            from project.zipTree("${attachmentsPath}${File.separator}processContent.zip")
+
+            into attachmentsPath
+        }
+        new File("${attachmentsPath}${File.separator}processContent.zip").delete()
+        
         /* Delete attachments.txt after transformation,
          * since it could contain outdated information when new attachments are added 
          */
-        new File(attachmentFileString).delete()
+        new File(attachmentFilePath).delete()
     }
     
     void callMergeTool() {
