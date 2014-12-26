@@ -16,6 +16,7 @@
 package com.dentsads.rtc.build.gradle
 
 import com.dentsads.rtc.build.gradle.api.JazzSourceSet
+import com.dentsads.rtc.build.gradle.internal.api.DefaultJazzSourceSet
 import com.dentsads.rtc.build.gradle.internal.dsl.BuildTypeFactory
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigDsl
 import com.dentsads.rtc.build.gradle.internal.dsl.DeploymentConfigFactory
@@ -24,6 +25,7 @@ import com.dentsads.rtc.build.gradle.internal.model.DeploymentConfig
 import com.dentsads.rtc.build.gradle.internal.BuildTypeData
 import com.dentsads.rtc.build.gradle.internal.model.BuildType
 import com.dentsads.rtc.build.gradle.internal.model.MergeConfig
+import com.dentsads.rtc.build.gradle.tasks.AssembleProcessTemplate
 import com.dentsads.rtc.build.gradle.tasks.ExportProcessTemplate
 import com.dentsads.rtc.build.gradle.tasks.InstantiateProcessTemplate
 import com.dentsads.rtc.build.gradle.tasks.MergeProcessTemplates
@@ -52,8 +54,6 @@ class JazzPlugin implements Plugin<Project> {
     protected Project project
 
     JazzExtension jazzExtension
-
-    private boolean hasCreatedTasks = false
 
     protected Instantiator instantiator
 
@@ -108,22 +108,15 @@ class JazzPlugin implements Plugin<Project> {
         buildTypes[name] = buildTypeData
     }
     
-    private static void checkName(String name, String displayName) {
-         if ("main".equals(name)) {
+    private void checkName(String name, String displayName) {
+         if ("main".equals(name)) 
             throw new RuntimeException("${displayName} names cannot be 'main'")
          
          if ("All".equals(name))
              throw new RuntimeException("${displayName} names cannot be 'All'")
-        }
     }
     
     public void createTasks() {
-        if (hasCreatedTasks) {
-            logger.quiet("Tasks have already been created, aborting task creation!")
-            return
-        }
-        hasCreatedTasks = true
-
         logger.quiet("Creating Tasks for Build Type declarations!")
         
         createDeploymentTaskAll()
@@ -150,11 +143,9 @@ class JazzPlugin implements Plugin<Project> {
         extractionTask.repositoryUrl = jazzExtension.extractionConfig.repository.repositoryUrl
         extractionTask.username = jazzExtension.extractionConfig.repository.username
         extractionTask.password = jazzExtension.extractionConfig.repository.password
-        
 
         File processTemplateZipFile = new File(extractionTask.zipPath, File.separator + extractionTask.projectAreaName + ".zip")
         createMergeProcessTemplateTask(processTemplateZipFile)
-
 
         // Task is never up to date and must always be executed
         //extractionTask.outputs.upToDateWhen {false}
@@ -192,11 +183,6 @@ class JazzPlugin implements Plugin<Project> {
         mergeTask.group = JAZZ_GROUP_NAME
 
         MergeConfig mergeConfig = jazzExtension.extractionConfig.mergeConfig
-
-        //Task extractionTask = project.tasks.findByName(EXPORT_PROCESS_TEMPLATE_TASK_NAME)
-        
-        //File processTemplateZipFile = new File(extractionTask.zipPath, File.separator + extractionTask.projectAreaName + ".zip")
-
         mergeTask.processTemplateZipFile = processTemplateZipFile
         mergeTask.mergeTargetDirectory = mergeConfig.mergeTargetDirectory
         mergeTask.mergeToolExecutable = mergeConfig.mergeToolExecutable
@@ -208,7 +194,21 @@ class JazzPlugin implements Plugin<Project> {
     }
     
     private void createAssemblyTask(BuildTypeData buildTypeData) {
-        
-        
+        Task assembleTask = project.tasks.create("assemble${buildTypeData.buildType.name.capitalize()}", AssembleProcessTemplate)
+        assembleTask.description = "Assembles the Process Template declared by buildType ${buildTypeData.buildType.name}."
+        assembleTask.group = JAZZ_GROUP_NAME
+
+        BuildType type = buildTypeData.buildType
+        DefaultJazzSourceSet defaultSourceSet = buildTypeData.sourceSet
+
+        assembleTask.buildTypeName = type.name
+        assembleTask.templateName = type.templateName
+        assembleTask.templateId = type.templateId
+        assembleTask.buildDir = project.file("${project.buildDir}/templateAssemblies")
+        assembleTask.assemblyMasterSourceSetPathString = defaultSourceSet.master.getSrcDirs().iterator()[0]
+        assembleTask.assemblySlaveSourceSetPathString = defaultSourceSet.slave.getSrcDirs().iterator()[0]
+
+        // assemble depends on this assembly task
+        project.tasks.assemble.dependsOn assembleTask
     }
 }

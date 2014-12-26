@@ -38,9 +38,7 @@ class ExportProcessTemplate extends BaseTask{
     @Input String projectAreaName
     @Input @Optional String templateTempSuffix = "-temp"
     @OutputDirectory File zipPath
-    
-    static final String PROCESS_TEMPLATE_EXPORT_DIR_NAME = 'templateExports'
-    
+
     IProcessItemService service
     ITeamRepository teamRepo
     IProgressMonitor monitor
@@ -131,10 +129,4 @@ class ExportProcessTemplate extends BaseTask{
         }
     }
 
-    // Deletes and creates Build Export Path Folder for every execution
-    private File createBuildExportPath() {
-        File exportPath = new File(project.buildDir,  File.separator + PROCESS_TEMPLATE_EXPORT_DIR_NAME)
-        
-        return exportPath.exists() ? {exportPath.deleteDir() ; exportPath.mkdir() ; return exportPath}() : {exportPath.mkdir() ; return exportPath}()
-    }
 }

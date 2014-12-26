@@ -19,7 +19,6 @@ public class BuildType {
     String name
     String templateName
     String templateId
-    String zipFileName
     DeploymentConfig deployment
 
     public BuildType(String name) {
