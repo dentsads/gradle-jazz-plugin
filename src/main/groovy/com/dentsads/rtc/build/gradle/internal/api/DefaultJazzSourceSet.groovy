@@ -21,13 +21,23 @@ import org.gradle.api.internal.file.FileResolver
 
 class DefaultJazzSourceSet implements JazzSourceSet{
     
+    static final String DEFAULT_MASTER_DIR_NAME = "master"
+    static final String DEFAULT_SLAVE_DIR_NAME = "slave"
+    static final String DEFAULT_RES_DIR_NAME = "res"
+    
     private final String name;
+    private final JazzSourceDirectorySet res;
     private final JazzSourceDirectorySet master;
     private final JazzSourceDirectorySet slave;
     
     public DefaultJazzSourceSet(String name, FileResolver fileResolver) {
         this.name = name;
 
+        String resourcesDisplayName = String.format("%s resources", this.name);
+        res = new DefaultJazzSourceDirectorySet(resourcesDisplayName, fileResolver);
+
+        res.setSrcDirs(Collections.singletonList(DEFAULT_RES_DIR_NAME))
+        
         String masterDisplayName = String.format("%s master", this.name);
         master = new DefaultJazzSourceDirectorySet(masterDisplayName, fileResolver);
 
@@ -41,6 +51,11 @@ class DefaultJazzSourceSet implements JazzSourceSet{
     }
 
     @Override
+    JazzSourceDirectorySet getRes() {
+        return res
+    }
+    
+    @Override
     JazzSourceDirectorySet getMaster() {
         return master
     }
@@ -52,8 +67,8 @@ class DefaultJazzSourceSet implements JazzSourceSet{
 
     @Override
     JazzSourceSet setRoot(String path) {
-        master.setSrcDirs(Collections.singletonList(path + "/master"))
-        slave.setSrcDirs(Collections.singletonList(path + "/slave"))
+        master.setSrcDirs(Collections.singletonList(path + "/" + DEFAULT_MASTER_DIR_NAME))
+        slave.setSrcDirs(Collections.singletonList(path + "/" + DEFAULT_SLAVE_DIR_NAME))
         
         return this
     }

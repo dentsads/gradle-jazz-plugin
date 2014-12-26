@@ -207,7 +207,8 @@ class JazzPlugin implements Plugin<Project> {
         assembleTask.buildDir = project.file("${project.buildDir}/templateAssemblies")
         assembleTask.assemblyMasterSourceSetPathString = defaultSourceSet.master.getSrcDirs().iterator()[0]
         assembleTask.assemblySlaveSourceSetPathString = defaultSourceSet.slave.getSrcDirs().iterator()[0]
-
+        assembleTask.assemblyResSourceSetPathString = defaultSourceSet.res.getSrcDirs().iterator()[0]
+        
         // assemble depends on this assembly task
         project.tasks.assemble.dependsOn assembleTask
     }

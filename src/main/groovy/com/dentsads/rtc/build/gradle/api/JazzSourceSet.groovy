@@ -15,11 +15,10 @@
  */
 package com.dentsads.rtc.build.gradle.api
 
-import org.gradle.api.file.SourceDirectorySet
-
 public interface JazzSourceSet {
     String getName();
     JazzSourceDirectorySet getMaster();
     JazzSourceDirectorySet getSlave();
+    JazzSourceDirectorySet getRes();
     JazzSourceSet setRoot(String path);
 }

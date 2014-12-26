@@ -23,15 +23,19 @@ import org.gradle.api.tasks.bundling.Zip
 class AssembleProcessTemplate extends DefaultTask{
     @Input String assemblyMasterSourceSetPathString
     @Input String assemblySlaveSourceSetPathString
+    @Input String assemblyResSourceSetPathString
     @Input String templateName
     @Input String templateId
     @Input File buildDir
     @Input String buildTypeName
+    def mergedConfig
     
     @TaskAction
     void assembleProcessTemplate() {
         logger.quiet("Packaging '$assemblyMasterSourceSetPathString' and '$assemblySlaveSourceSetPathString'.")
 
+        mergedConfig = fetchConfigFiles(assemblyResSourceSetPathString)
+        
         restoreProcessTemplate(assemblySlaveSourceSetPathString)
         restoreProcessTemplate(assemblyMasterSourceSetPathString)
     }
@@ -51,6 +55,9 @@ class AssembleProcessTemplate extends DefaultTask{
             into templateBuildBasePath
         }
 
+        // replace any property placeholders in all files with whatever is defined in any property files
+        replacePropertiesInBuildTypeFileTree(templateBuildBasePath, mergedConfig.toProperties())
+        
         // Zip the processContent folder in place and delete it
         Zip zip = project.tasks.maybeCreate("bundle${buildTypeName}", Zip)
         zip.from(processContentPath).into("processContent")
@@ -115,6 +122,40 @@ class AssembleProcessTemplate extends DefaultTask{
         zip.setArchiveName("${buildTypeName}-${suffixPath}-${formattedDate}.zip")
         zip.destinationDir = buildDir
         zip.execute()
+        
     }
 
+    private ConfigObject fetchConfigFiles(String dirPath) {
+        def mergedConfig = new ConfigObject()
+        
+        new File(dirPath).traverse(type: groovy.io.FileType.FILES, nameFilter: ~/.*\.properties/){File file ->
+            def props = new Properties()
+            file.withInputStream {
+                stream -> props.load(stream)
+            }
+            
+            mergedConfig.merge(new ConfigSlurper().parse(props))
+        }
+        
+        return mergedConfig
+    }
+        
+    private void replacePropertiesInBuildTypeFileTree(String replacementDirPath, Properties properties) {
+        final excludedDirs = ['.zip', '.tar', '.rar', '.gif', '.jpeg', '.png']
+        
+        new File(replacementDirPath).traverse(type: groovy.io.FileType.FILES, excludeNameFilter   : { it in excludedDirs }){File file ->
+            replacePropertiesInBuildTypeFile(file, properties)
+        }
+    }
+
+    protected void replacePropertiesInBuildTypeFile(File file, Properties properties) {
+
+        def String fileText = file.getText();
+        for ( key in properties.keys() ) {
+            fileText=fileText.replaceAll('\\%\\{' + key + '+\\}', properties.get(key));
+        }
+
+        file.write(fileText);
+    }
+    
 }
