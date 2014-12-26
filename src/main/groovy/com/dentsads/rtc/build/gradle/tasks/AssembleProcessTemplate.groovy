@@ -30,17 +30,13 @@ class AssembleProcessTemplate extends DefaultTask{
     
     @TaskAction
     void assembleProcessTemplate() {
-        untransformProcessTemplate()
-    }
-    
-    void untransformProcessTemplate() {
         logger.quiet("Packaging '$assemblyMasterSourceSetPathString' and '$assemblySlaveSourceSetPathString'.")
 
-        untransformProcessTemplate(assemblySlaveSourceSetPathString)
-        untransformProcessTemplate(assemblyMasterSourceSetPathString)
+        restoreProcessTemplate(assemblySlaveSourceSetPathString)
+        restoreProcessTemplate(assemblyMasterSourceSetPathString)
     }
     
-    void untransformProcessTemplate(String assemblySourceSetPathString) {
+    void restoreProcessTemplate(String assemblySourceSetPathString) {
         String suffixPath = assemblySourceSetPathString.substring(assemblySourceSetPathString.lastIndexOf(File.separator) + 1,assemblySourceSetPathString.length())
         String templateBuildBasePath = "${buildDir.absolutePath}${File.separator}${buildTypeName}${File.separator}${suffixPath}"
         String attachmentsPath = "${templateBuildBasePath}${File.separator}attachments"
@@ -105,14 +101,15 @@ class AssembleProcessTemplate extends DefaultTask{
 
         // Rename temp attachments folder with transformed content
         new File("${attachmentsPath}-temp").renameTo(attachmentsPath)
-
-        // Zip process Template in place
+        
+        // Setting up a formatted Timestamp
         TimeZone.setDefault(TimeZone.getTimeZone('UTC'))
         def now = new Date()
         String formattedDate = now.format("yyyyMMdd-HHmmss-SS")
         
         logger.quiet("Packaging zip container '${buildDir}${File.separator}${buildTypeName}-${suffixPath}-${formattedDate}.zip'")
-        
+
+        // Zip process Template in place
         zip = project.tasks.maybeCreate("zip${buildTypeName}${suffixPath}", Zip)
         zip.from(templateBuildBasePath).into("template")
         zip.setArchiveName("${buildTypeName}-${suffixPath}-${formattedDate}.zip")
