@@ -143,16 +143,21 @@ class AssembleProcessTemplate extends DefaultTask{
     private void replacePropertiesInBuildTypeFileTree(String replacementDirPath, Properties properties) {
         final excludedDirs = ['.zip', '.tar', '.rar', '.gif', '.jpeg', '.png']
         
-        new File(replacementDirPath).traverse(type: groovy.io.FileType.FILES, excludeNameFilter   : { it in excludedDirs }){File file ->
+        new File(replacementDirPath).traverse(type: groovy.io.FileType.FILES,
+                excludeNameFilter: { it.substring(it.lastIndexOf(".")) in excludedDirs }){ File file ->
             replacePropertiesInBuildTypeFile(file, properties)
         }
     }
 
     protected void replacePropertiesInBuildTypeFile(File file, Properties properties) {
-
         def String fileText = file.getText();
-        for ( key in properties.keys() ) {
-            fileText=fileText.replaceAll('\\%\\{' + key + '+\\}', properties.get(key));
+
+        int counter = 10;
+        while (fileText.contains('%{') && counter > 0) {
+            --counter;
+            for ( key in properties.keys() ) {
+                fileText=fileText.replaceAll('\\%\\{' + key + '+\\}', properties.get(key));
+            }
         }
 
         file.write(fileText);

@@ -35,7 +35,7 @@ class MergeProcessTemplates extends DefaultTask{
     
     void transformProcessTemplateZipFile() {
         logger.quiet("Deleting unpacked Process Template folder, if present")
-        new File(processTemplateZipFile.getAbsolutePath().replaceFirst("[.][^.]+\$", "")).deleteDir()
+        new File(processTemplateZipFile.getAbsolutePath().magroov.replaceFirst("[.][^.]+\$", "")).deleteDir()
 
         logger.quiet("Unpackaging Process Template Zip File '$processTemplateZipFile' and merging into target directory '$mergeTargetDirectory'")
 
