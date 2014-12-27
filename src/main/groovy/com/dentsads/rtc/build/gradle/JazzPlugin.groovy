@@ -160,7 +160,7 @@ class JazzPlugin implements Plugin<Project> {
     }
     
     private void createDeploymentTask(BuildTypeData buildTypeData) {
-        Task deploymentTask = project.tasks.create("deploy${buildTypeData.buildType.name.capitalize()}", InstantiateProcessTemplate)
+        Task deploymentTask = project.tasks.create(getDeployTaskNameForBuildTypeData(buildTypeData), InstantiateProcessTemplate)
         deploymentTask.description = "Assembles, imports into RTC and instantiates the Process Template declared by buildType ${buildTypeData.buildType.name}."
         deploymentTask.group = JAZZ_GROUP_NAME
         
@@ -172,7 +172,8 @@ class JazzPlugin implements Plugin<Project> {
         deploymentTask.repositoryUrl = buildTypeData.buildType.deployment.repository.repositoryUrl
         deploymentTask.username = buildTypeData.buildType.deployment.repository.username
         deploymentTask.password = buildTypeData.buildType.deployment.repository.password
-
+        deploymentTask.zipFiles = project.tasks.findByName(getAssemblyTaskNameForBuildTypeData(buildTypeData)).outputs.files
+        
         // deployAll depends on this deployment task
         project.tasks.findByName(DEPLOY_ALL_TASK_NAME).dependsOn deploymentTask
     }
@@ -194,7 +195,7 @@ class JazzPlugin implements Plugin<Project> {
     }
     
     private void createAssemblyTask(BuildTypeData buildTypeData) {
-        Task assembleTask = project.tasks.create("assemble${buildTypeData.buildType.name.capitalize()}", AssembleProcessTemplate)
+        Task assembleTask = project.tasks.create(getAssemblyTaskNameForBuildTypeData(buildTypeData), AssembleProcessTemplate)
         assembleTask.description = "Assembles the Process Template declared by buildType ${buildTypeData.buildType.name}."
         assembleTask.group = JAZZ_GROUP_NAME
 
@@ -208,8 +209,36 @@ class JazzPlugin implements Plugin<Project> {
         assembleTask.assemblyMasterSourceSetPathString = defaultSourceSet.master.getSrcDirs().iterator()[0]
         assembleTask.assemblySlaveSourceSetPathString = defaultSourceSet.slave.getSrcDirs().iterator()[0]
         assembleTask.assemblyResSourceSetPathString = defaultSourceSet.res.getSrcDirs().iterator()[0]
+
+
+        // Setting up a formatted Timestamp
+        TimeZone.setDefault(TimeZone.getTimeZone('UTC'))
+        def now = new Date()
+        String formattedTimestampString = now.format("yyyyMMdd-HHmmss-SS")
+
+        assembleTask.formattedTimestampString = formattedTimestampString
+        
+        String suffixPathMaster = assembleTask.assemblyMasterSourceSetPathString
+                .substring(assembleTask.assemblyMasterSourceSetPathString
+                .lastIndexOf(File.separator) + 1,assembleTask.assemblyMasterSourceSetPathString.length())
+        String suffixPathSlave =  assembleTask.assemblySlaveSourceSetPathString
+                .substring( assembleTask.assemblySlaveSourceSetPathString
+                .lastIndexOf(File.separator) + 1, assembleTask.assemblySlaveSourceSetPathString.length())
+
+        File outputMaster = project.file("$assembleTask.buildDir/${type.name}-${suffixPathMaster}-${formattedTimestampString}.zip")
+        File outputSlave = project.file("$assembleTask.buildDir/${type.name}-${suffixPathSlave}-${formattedTimestampString}.zip")
+        
+        assembleTask.outputs.files(outputMaster, outputSlave)
         
         // assemble depends on this assembly task
         project.tasks.assemble.dependsOn assembleTask
+    }
+    
+    private String getAssemblyTaskNameForBuildTypeData(BuildTypeData buildTypeData) {
+        "assemble${buildTypeData.buildType.name.capitalize()}"     
+    }
+
+    private String getDeployTaskNameForBuildTypeData(BuildTypeData buildTypeData) {
+        "deploy${buildTypeData.buildType.name.capitalize()}"
     }
 }

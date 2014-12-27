@@ -26,14 +26,18 @@ import com.ibm.team.repository.common.TeamRepositoryException
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.core.runtime.SubProgressMonitor
+import org.gradle.api.file.FileCollection
+import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.TaskAction
 
 class InstantiateProcessTemplate extends BaseTask{
 
     @Input String templateName
     @Input String templateId
-    String zipPath = "/tmp/ScrumTestProjectArea1-temp.zip"
+    @InputFiles FileCollection zipFiles
     
     ITeamRepository teamRepo
     IProgressMonitor monitor
@@ -45,29 +49,37 @@ class InstantiateProcessTemplate extends BaseTask{
         this.teamRepo = login(repositoryUrl,
                 username, password, monitor);
 
-        logger.quiet("importing template '$templateName' to repository '$repositoryUrl'")
-        importProcessDefinition(zipPath, templateId, templateName, templateName, monitor)
+        zipFiles.files.each { File file ->
+
+            FileTree zip = project.zipTree(file)
+            String processId = zip.matching { include "template/processId.txt"}.getSingleFile().getText()
+            String name = zip.matching { include "template/name.txt"}.getSingleFile().getText()
+            
+            logger.quiet("importing template '$name' to repository '$repositoryUrl'")
+            importProcessDefinition(file, processId, name, name, monitor)
+        }
 
         if (TeamPlatform.isStarted()) TeamPlatform.shutdown();
     }
 
-    private IProcessDefinition importProcessDefinition(String archivePath, String definitionId, String definitionName, String definitionToOverwrite, IProgressMonitor monitor) throws TeamRepositoryException {
+    public IProcessDefinition importProcessDefinition(File archiveFile, String definitionId, String definitionName, String definitionToOverwrite, IProgressMonitor monitor) throws TeamRepositoryException {
         if (monitor == null) {
             monitor = new NullProgressMonitor();
         }
         monitor.beginTask("", 1000); //$NON-NLS-1$
 
-        File archive;
+
+        //File archive;
         boolean isTempArchive = false;
-        archive = new File(archivePath);
+        //archive = new File(archivePath);
 
         monitor.worked(50); // Creating a zip file could take some time
         IContent content;
         try {
-            content = createBinaryContentFromFile(archive, new SubProgressMonitor(monitor, 350));
+            content = createBinaryContentFromFile(archiveFile, new SubProgressMonitor(monitor, 350));
         } finally {
             if (isTempArchive) {
-                archive.delete();
+                archiveFile.delete();
             }
         }
 

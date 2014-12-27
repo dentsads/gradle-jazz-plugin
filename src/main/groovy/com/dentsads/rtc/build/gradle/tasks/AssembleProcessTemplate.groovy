@@ -28,14 +28,18 @@ class AssembleProcessTemplate extends DefaultTask{
     @Input String templateId
     @Input File buildDir
     @Input String buildTypeName
+    
+    String formattedTimestampString
+    
     def mergedConfig
     
     @TaskAction
     void assembleProcessTemplate() {
         logger.quiet("Packaging '$assemblyMasterSourceSetPathString' and '$assemblySlaveSourceSetPathString'.")
 
+        // Fetch all property files in the declared resource folder and merge them
         mergedConfig = fetchConfigFiles(assemblyResSourceSetPathString)
-        
+
         restoreProcessTemplate(assemblySlaveSourceSetPathString)
         restoreProcessTemplate(assemblyMasterSourceSetPathString)
     }
@@ -46,7 +50,7 @@ class AssembleProcessTemplate extends DefaultTask{
         String attachmentsPath = "${templateBuildBasePath}${File.separator}attachments"
         String processContentPath = "${attachmentsPath}${File.separator}processContent"
 
-        logger.quiet("Deleting unpacked Process Template folder '${templateBuildBasePath}', if present")
+        logger.quiet("Deleting old unpacked Process Template folder '${templateBuildBasePath}', if present")
         new File(templateBuildBasePath).deleteDir()
         
         // Make a fresh copy of build Type sources into the build directory
@@ -55,7 +59,7 @@ class AssembleProcessTemplate extends DefaultTask{
             into templateBuildBasePath
         }
 
-        // replace any property placeholders in all files with whatever is defined in any property files
+        // replace any property placeholders in all non-binary files with properties in resources folder
         replacePropertiesInBuildTypeFileTree(templateBuildBasePath, mergedConfig.toProperties())
         
         // Zip the processContent folder in place and delete it
@@ -108,21 +112,14 @@ class AssembleProcessTemplate extends DefaultTask{
 
         // Rename temp attachments folder with transformed content
         new File("${attachmentsPath}-temp").renameTo(attachmentsPath)
-        
-        // Setting up a formatted Timestamp
-        TimeZone.setDefault(TimeZone.getTimeZone('UTC'))
-        def now = new Date()
-        String formattedDate = now.format("yyyyMMdd-HHmmss-SS")
-        
-        logger.quiet("Packaging zip container '${buildDir}${File.separator}${buildTypeName}-${suffixPath}-${formattedDate}.zip'")
 
+        logger.quiet("Packaging zip container '${buildDir}${File.separator}${buildTypeName}-${suffixPath}-${formattedTimestampString}.zip'")
         // Zip process Template in place
         zip = project.tasks.maybeCreate("zip${buildTypeName}${suffixPath}", Zip)
         zip.from(templateBuildBasePath).into("template")
-        zip.setArchiveName("${buildTypeName}-${suffixPath}-${formattedDate}.zip")
+        zip.setArchiveName("${buildTypeName}-${suffixPath}-${formattedTimestampString}.zip")
         zip.destinationDir = buildDir
         zip.execute()
-        
     }
 
     private ConfigObject fetchConfigFiles(String dirPath) {
@@ -141,10 +138,10 @@ class AssembleProcessTemplate extends DefaultTask{
     }
         
     private void replacePropertiesInBuildTypeFileTree(String replacementDirPath, Properties properties) {
-        final excludedDirs = ['.zip', '.tar', '.rar', '.gif', '.jpeg', '.png']
+        final excludedExtensions = ['.zip', '.tar', '.rar', '.gif', '.jpeg', '.png']
         
         new File(replacementDirPath).traverse(type: groovy.io.FileType.FILES,
-                excludeNameFilter: { it.substring(it.lastIndexOf(".")) in excludedDirs }){ File file ->
+                excludeNameFilter: { it.substring(it.lastIndexOf(".")) in excludedExtensions }){ File file ->
             replacePropertiesInBuildTypeFile(file, properties)
         }
     }
@@ -152,6 +149,9 @@ class AssembleProcessTemplate extends DefaultTask{
     protected void replacePropertiesInBuildTypeFile(File file, Properties properties) {
         def String fileText = file.getText();
 
+        // Try up to ten times replacing nested placeholders.
+        // If there are any placeholders left after ten replacement iterations we assume that
+        // there is no replacement property available.
         int counter = 10;
         while (fileText.contains('%{') && counter > 0) {
             --counter;
